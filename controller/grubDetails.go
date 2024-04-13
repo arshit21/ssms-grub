@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 func CreateGrub(c *gin.Context) {
@@ -71,7 +72,13 @@ func GetAllGrubs(c *gin.Context) {
 	}
 
 	collection := db.Collection("grubs")
-	cursor, err := collection.Find(context.Background(), bson.M{})
+
+	// Create a projection to exclude the usergrubinfo field
+	projection := bson.M{"usergrubinfo": 0}
+
+	findOptions := options.Find().SetProjection(projection)
+
+	cursor, err := collection.Find(context.Background(), bson.M{}, findOptions)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -97,8 +104,14 @@ func GetGrubByName(c *gin.Context) {
 	name := c.Param("name")
 
 	collection := db.Collection("grubs")
+
+	// Create a projection to exclude the usergrubinfo field
+	projection := bson.M{"usergrubinfo": 0}
+
+	findOptions := options.FindOne().SetProjection(projection)
+
 	var grub database.Grub
-	err = collection.FindOne(context.Background(), bson.M{"name": name}).Decode(&grub)
+	err = collection.FindOne(context.Background(), bson.M{"name": name}, findOptions).Decode(&grub)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
